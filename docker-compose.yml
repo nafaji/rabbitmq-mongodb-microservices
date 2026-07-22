@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"     # AMQP Protocol
+      - "15672:15672"   # Management UI (guest / guest)
+    networks:
+      - microservices-net
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - microservices-net
+
+  order-api:
+    container_name: order-api
+    build:
+      context: .
+      dockerfile: Order.Api/Dockerfile
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__MongoDb=mongodb://mongodb:27017
+      - RabbitMQ__Host=rabbitmq
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - microservices-net
+
+  inventory-api:
+    container_name: inventory-api
+    build:
+      context: .
+      dockerfile: Inventory.Api/Dockerfile
+    ports:
+      - "5002:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ConnectionStrings__MongoDb=mongodb://mongodb:27017
+      - RabbitMQ__Host=rabbitmq
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  mongo-data:

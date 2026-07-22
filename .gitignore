@@ -1,0 +1,13 @@
+## .NET Artifacts
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+## OS Files
+.DS_Store
+Thumbs.db
+
+## Docker
+.dockerignore
