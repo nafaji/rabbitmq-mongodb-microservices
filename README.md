@@ -8,34 +8,36 @@ This solution demonstrates asynchronous communication between decoupled microser
 
 ## 🏗️ Architecture Overview
 
-```
-                        ┌─────────────────────────────────────────┐
-                        │              RabbitMQ                   │
-                        │           (order-exchange)              │
-                        └────────────────────┬────────────────────┘
-                                             │
-                                   Fanout / Publish
-                                             │
-                        ┌────────────────────▼────────────────────┐
-                        │      inventory-order-created-queue      │
-                        └────────────────────┬────────────────────┘
-                                             │
-                                         Consume
-                                             │
-┌─────────────────────────┐                  │              ┌─────────────────────────┐
-│       Order.Api         │                  ▼              │      Inventory.Api      │
-│  (Port 5001 -> 8080)    │                          ┌─────►│  (Port 5002 -> 8080)    │
-└───────────┬─────────────┘                          │      └───────────┬─────────────┘
-            │                                        │                  │
-            │ Inserts Order                          │                  │ Updates Stock
-            ▼                                        │                  │ & Logs Event
-┌─────────────────────────┐                          │                  ▼
-│   MongoDB (OrdersDb)    │                          │      ┌─────────────────────────┐
-│   Collection: Orders    │                          │      │  MongoDB (InventoryDb)  │
-└─────────────────────────┘                          │      │ Collections:            │
-                                                     │      │  • Inventory            │
-                                                     │      │  • OrderLogs            │
-                                                     │      └─────────────────────────┘
+```text
+               +-------------------------------------------------+
+               |              RabbitMQ Message Broker            |
+               |             Exchange: order-exchange            |
+               +------------------------+------------------------+
+                                        |
+                             Publish OrderCreatedEvent
+                                        |
+                                        v
+               +-------------------------------------------------+
+               |         inventory-order-created-queue           |
+               +------------------------+------------------------+
+                                        |
+                               Consume Event
+                                        |
+                                        v
++-------------------------+                         +-------------------------+
+|        Order.Api        |                         |      Inventory.Api      |
+|  (Port 5001 -> 8080)    |                         |  (Port 5002 -> 8080)    |
++------------+------------+                         +------------+------------+
+             |                                                   |
+     Inserts Order                                   Updates Stock & Order Logs
+             |                                                   |
+             v                                                   v
++-------------------------+                         +-------------------------+
+|   MongoDB (OrdersDb)    |                         |  MongoDB (InventoryDb)  |
+|   Collection: Orders    |                         |  Collections:           |
++-------------------------+                         |   • Inventory           |
+                                                    |   • OrderLogs           |
+                                                    +-------------------------+
 ```
 
 ---
